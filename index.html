@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+  <html lang="ja">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>感謝日誌</title>
+  </head>
+  <body style="margin:0;">
+  <div id="gj-root"></div>
+  <style>
+    #gj-root {
+      --ink: #1b2333;
+    --paper: #fdfbf6;
+          --indigo: #1f2a44;
+    --indigo-deep: #14192b;
+    --amber: #e0954f;
+          --amber-soft: #f2c896;
+          --line: rgba(255,255,255,0.12);
+    --muted: rgba(253,251,246,0.55);
+    font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: linear-gradient(180deg, var(--indigo-deep) 0%, var(--indigo) 55%, #2a3252 100%);
+    color: var(--paper);
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 28px 18px 40px;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+}
+  #gj-root * { box-sizing: border-box; }
+  .gj-hidden { display: none !important; }
+  /* --- Horizon signature element --- */
+  .gj-horizon {
+        position: relative;
+    height: 120px;
+    margin-bottom: 8px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: radial-gradient(120% 100% at 50% 120%, rgba(224,149,79,0.35), transparent 60%);
+}
+  .gj-sun {
+        position: absolute;
+    left: 50%;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff2dd, var(--amber-soft) 40%, var(--amber) 100%);
+          box-shadow: 0 0 24px rgba(224,149,79,0.55);
+    transform: translateX(-50%);
+    transition: bottom 900ms cubic-bezier(.2,.8,.2,1);
+}
+  .gj-horizon-line {
+        position: absolute;
+    left: 0; right: 0; bottom: 38px;
+    height: 1px;
+    background: var(--line);
+}
+  .gj-streak-label {
+        position: absolute;
+    bottom: 10px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+}
+  .gj-streak-num {
+        font-size: 15px;
+    letter-spacing: 0.02em;
+    color: var(--amber-soft);
+    font-weight: 600;
+    margin-right: 4px;
+}
+  h1.gj-title {
+        font-size: 20px;
+    font-weight: 700;
+    margin: 4px 0 2px;
+    letter-spacing: 0.02em;
+}
+  .gj-date {
+        font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 22px;
+}
+  /* --- Tabs --- */
+  .gj-tabs {
+        display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    background: rgba(255,255,255,0.06);
+    padding: 4px;
+    border-radius: 12px;
+}
+  .gj-tab {
+        flex: 1;
+    text-align: center;
+    padding: 9px 0;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 200ms, color 200ms;
+    -webkit-tap-highlight-color: transparent;
+}
+  .gj-tab.active {
+    background: var(--amber);
+    color: var(--indigo-deep);
+  }
+  /* --- Morning panel --- */
+  .gj-morning-card {
+        border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+}
+  .gj-morning-phrase {
+        font-size: 17px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+}
+  .gj-btn {
+        appearance: none;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 120ms, opacity 200ms;
+    -webkit-tap-highlight-color: transparent;
+}
+  .gj-btn:active { transform: scale(0.98); }
+  .gj-btn-primary { background: var(--amber); color: var(--indigo-deep); }
+  .gj-btn-ghost {
+        background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+}
+  .gj-done-check {
+        color: var(--amber-soft);
+    font-size: 14px;
+    font-weight: 600;
+}
+  /* --- Night form --- */
+  .gj-field { margin-bottom: 14px; }
+  .gj-field label {
+        display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+  .gj-field input {
+        width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--paper);
+    outline: none;
+    transition: border-color 150ms, background 150ms;
+}
+  .gj-field input:focus {
+        border-color: var(--amber);
+    background: rgba(255,255,255,0.09);
+}
+  .gj-field input::placeholder { color: rgba(253,251,246,0.32); }
+  .gj-save-row { margin-top: 20px; }
+  .gj-status {
+        font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 10px;
+    min-height: 16px;
+}
+  .gj-saved-card {
+        border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    background: rgba(255,255,255,0.03);
+}
+  .gj-saved-item { margin-bottom: 12px; }
+  .gj-saved-item .k {
+    font-size: 11px;
+    color: var(--amber-soft);
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .gj-saved-item .v { font-size: 14px; line-height: 1.6; }
+  /* --- History --- */
+  .gj-history {
+        margin-top: 22px;
+}
+  .gj-history summary {
+        font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+}
+  .gj-history-list { margin-top: 12px; }
+  .gj-history-row {
+        display: flex;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+}
+  .gj-history-row .d {
+    color: var(--muted);
+    min-width: 44px;
+    flex-shrink: 0;
+  }
+  .gj-history-row .t { line-height: 1.6; }
+  .gj-loading {
+        text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 40px 0;
+}
+  /* --- Calendar --- */
+  .gj-cal {
+        border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 14px;
+    margin-top: 24px;
+    margin-bottom: 18px;
+    background: rgba(255,255,255,0.03);
+}
+  .gj-cal-head {
+        display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+  .gj-cal-title {
+        font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+  .gj-cal-nav {
+        display: flex;
+    gap: 4px;
+}
+  .gj-cal-nav button {
+        appearance: none;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--paper);
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+  .gj-cal-nav button:disabled { opacity: 0.3; pointer-events: none; }
+  .gj-cal-grid {
+        display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+}
+  .gj-cal-dow {
+        text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    padding-bottom: 4px;
+}
+  .gj-cal-cell {
+        aspect-ratio: 1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    position: relative;
+    background: rgba(255,255,255,0.04);
+    color: var(--muted);
+}
+  .gj-cal-cell.gj-empty { background: transparent; }
+  .gj-cal-cell.gj-both {
+        background: var(--amber);
+    color: var(--indigo-deep);
+    font-weight: 700;
+}
+  .gj-cal-cell.gj-night-only {
+        background: rgba(224,149,79,0.55);
+    color: var(--indigo-deep);
+    font-weight: 700;
+}
+  .gj-cal-cell.gj-morning-only {
+        background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber-soft);
+}
+  .gj-cal-cell.gj-today {
+        box-shadow: 0 0 0 2px var(--paper) inset;
+}
+  .gj-cal-legend {
+        display: flex;
+    gap: 14px;
+    margin-top: 12px;
+    font-size: 10px;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+  .gj-cal-legend span { display: flex; align-items: center; gap: 5px; }
+  .gj-legend-dot {
+        width: 9px; height: 9px; border-radius: 3px;
+    display: inline-block;
+}
+  .gj-cal-month-stat {
+        font-size: 11px;
+    color: var(--amber-soft);
+}
+</style>
+  <script>
+  (function () {
+    const root = document.getElementById('gj-root');
+  const STORAGE_KEY = 'gratitude-journal-v1';
+  const MAX_STREAK_DOTS = 14;
+
+  function todayStr() {
+        const d = new Date();
+    const tz = d.getTimezoneOffset() * 60000;
+    return new Date(d - tz).toISOString().slice(0, 10);
+  }
+
+  function fmtDate(str) {
+        const d = new Date(str + 'T00:00:00');
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+
+  function weekday(str) {
+        const w = ['日','月','火','水','木','金','土'];
+    const d = new Date(str + 'T00:00:00');
+    return w[d.getDay()];
+  }
+
+  let data = { entries: {}, streak: 0, lastEntryDate: null };
+  let activeTab = 'night';
+  let calMonth = todayStr().slice(0, 7); // 'YYYY-MM'
+
+  async function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        data = JSON.parse(raw);
+      }
+    } catch (e) {
+      // no existing data yet
+    }
+  }
+
+  async function saveData() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('save failed', e);
+    }
+  }
+
+  function recomputeStreak() {
+        // count consecutive days up to today (or yesterday if today not yet done) that have a night entry
+    let count = 0;
+    let cursor = new Date(todayStr() + 'T00:00:00');
+    const hasToday = !!(data.entries[todayStr()] && data.entries[todayStr()].night);
+    if (!hasToday) cursor.setDate(cursor.getDate() - 1);
+    while (true) {
+      const key = new Date(cursor - cursor.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      if (data.entries[key] && data.entries[key].night) {
+        count++;
+        cursor.setDate(cursor.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    data.streak = count;
+  }
+
+  function render() {
+        recomputeStreak();
+    const today = todayStr();
+    const todayEntry = data.entries[today] || {};
+    const sunBottom = Math.min(78, 8 + (data.streak / MAX_STREAK_DOTS) * 70);
+
+    root.innerHTML = `
+      <div class="gj-horizon">
+        <div class="gj-horizon-line"></div>
+        <div class="gj-sun" style="bottom:${sunBottom}px"></div>
+        <div class="gj-streak-label"><span class="gj-streak-num">${data.streak}</span>日連続</div>
+      </div>
+      <h1 class="gj-title">感謝日誌</h1>
+      <div class="gj-date">${today.slice(0,4)}年${fmtDate(today)}（${weekday(today)}）</div>
+      <div class="gj-tabs">
+        <div class="gj-tab ${activeTab==='morning'?'active':''}" data-tab="morning">朝</div>
+        <div class="gj-tab ${activeTab==='night'?'active':''}" data-tab="night">夜</div>
+      </div>
+      <div id="gj-panel"></div>
+      <div id="gj-cal-wrap"></div>
+      <details class="gj-history">
+        <summary>これまでの記録を見る</summary>
+        <div class="gj-history-list" id="gj-history-list"></div>
+      </details>
+    `;
+
+    document.querySelectorAll('.gj-tab').forEach(el => {
+      el.addEventListener('click', () => {
+        activeTab = el.dataset.tab;
+        render();
+});
+});
+
+    renderCalendar();
+    renderPanel(todayEntry, today);
+    renderHistory();
+}
+
+  function renderCalendar() {
+    const wrap = document.getElementById('gj-cal-wrap');
+    const [y, m] = calMonth.split('-').map(Number);
+    const first = new Date(y, m - 1, 1);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const startDow = first.getDay(); // 0=Sun
+    const today = todayStr();
+    const isCurrentMonth = calMonth === today.slice(0, 7);
+
+    let completedCount = 0;
+    let cells = '';
+    for (let i = 0; i < startDow; i++) {
+      cells += `<div class="gj-cal-cell gj-empty"></div>`;
+}
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const entry = data.entries[dateStr];
+      const hasNight = !!(entry && entry.night);
+      const hasMorning = !!(entry && entry.morning);
+      if (hasNight) completedCount++;
+      let cls = 'gj-cal-cell';
+      if (hasNight && hasMorning) cls += ' gj-both';
+      else if (hasNight) cls += ' gj-night-only';
+      else if (hasMorning) cls += ' gj-morning-only';
+      if (dateStr === today) cls += ' gj-today';
+      cells += `<div class="${cls}">${day}</div>`;
+}
+
+    const dowLabels = ['日','月','火','水','木','金','土'];
+
+    wrap.innerHTML = `
+            <div class="gj-cal">
+              <div class="gj-cal-head">
+                <div class="gj-cal-title">${y}年${m}月</div>
+                <div class="gj-cal-month-stat">${completedCount}日 記録</div>
+                <div class="gj-cal-nav">
+                  <button id="gj-cal-prev">‹</button>
+                  <button id="gj-cal-next" ${isCurrentMonth ? 'disabled' : ''}>›</button>
+                </div>
+              </div>
+              <div class="gj-cal-grid">
+                ${dowLabels.map(d => `<div class="gj-cal-dow">${d}</div>`).join('')}
+                ${cells}
+        </div>
+              <div class="gj-cal-legend">
+                <span><span class="gj-legend-dot" style="background:var(--amber)"></span>朝・夜とも</span>
+                <span><span class="gj-legend-dot" style="background:rgba(224,149,79,0.55)"></span>夜のみ</span>
+                <span><span class="gj-legend-dot" style="background:transparent;border:1px solid var(--amber)"></span>朝のみ</span>
+              </div>
+            </div>
+          `;
+
+    document.getElementById('gj-cal-prev').addEventListener('click', () => {
+            const d = new Date(y, m - 2, 1);
+      calMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      renderCalendar();
+    });
+
+    const nextBtn = document.getElementById('gj-cal-next');
+    if (!isCurrentMonth) {
+      nextBtn.addEventListener('click', () => {
+        const d = new Date(y, m, 1);
+        calMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        renderCalendar();
+});
+}
+}
+
+  function renderPanel(todayEntry, today) {
+    const panel = document.getElementById('gj-panel');
+    if (activeTab === 'morning') {
+      if (todayEntry.morning) {
+        panel.innerHTML = `
+          <div class="gj-morning-card">
+            <div class="gj-morning-phrase">今日はついてる、ありがとう 🌅</div>
+            <div class="gj-done-check">✓ 今日はもう記録済み</div>
+          </div>
+        `;
+} else {
+        panel.innerHTML = `
+          <div class="gj-morning-card">
+            <div class="gj-morning-phrase">今日はついてる、<br>ありがとう</div>
+            <button class="gj-btn gj-btn-primary" id="gj-morning-btn">言えたら押す</button>
+          </div>
+        `;
+        document.getElementById('gj-morning-btn').addEventListener('click', async () => {
+          if (!data.entries[today]) data.entries[today] = {};
+          data.entries[today].morning = true;
+          await saveData();
+          render();
+});
+}
+      return;
+}
+
+    // night tab
+    if (todayEntry.night) {
+      const n = todayEntry.night;
+      panel.innerHTML = `
+        <div class="gj-saved-card">
+          <div class="gj-saved-item"><div class="k">頑張ったこと</div><div class="v">${escapeHtml(n.ganbatta)}</div></div>
+          <div class="gj-saved-item"><div class="k">ありがとうと言われたこと</div><div class="v">${escapeHtml(n.arigatou)}</div></div>
+          <div class="gj-saved-item"><div class="k">当たり前だけどありがたいこと</div><div class="v">${escapeHtml(n.atarimae)}</div></div>
+          <div class="gj-saved-item"><div class="k">嫌な出来事からの学び</div><div class="v">${escapeHtml(n.manabi || '（なし）')}</div></div>
+          <button class="gj-btn gj-btn-ghost" id="gj-edit-btn">編集する</button>
+        </div>
+      `;
+      document.getElementById('gj-edit-btn').addEventListener('click', () => {
+        renderForm(todayEntry, today);
+});
+} else {
+      renderForm(todayEntry, today);
+}
+}
+
+  function renderForm(todayEntry, today) {
+    const panel = document.getElementById('gj-panel');
+    const n = todayEntry.night || {};
+    panel.innerHTML = `
+      <div class="gj-field">
+        <label>今日一番頑張ったこと</label>
+        <input type="text" id="gj-f1" value="${escapeAttr(n.ganbatta||'')}" placeholder="一言でOK">
+      </div>
+      <div class="gj-field">
+        <label>ありがとうと言われたこと</label>
+        <input type="text" id="gj-f2" value="${escapeAttr(n.arigatou||'')}" placeholder="なければ空欄でOK">
+      </div>
+      <div class="gj-field">
+        <label>当たり前だけどありがたいこと</label>
+        <input type="text" id="gj-f3" value="${escapeAttr(n.atarimae||'')}" placeholder="例：電車が動いた、息子が笑った">
+      </div>
+      <div class="gj-field">
+        <label>嫌な出来事から学べたこと（任意）</label>
+        <input type="text" id="gj-f4" value="${escapeAttr(n.manabi||'')}" placeholder="なければ空欄でOK">
+      </div>
+      <div class="gj-save-row">
+        <button class="gj-btn gj-btn-primary" id="gj-save-btn">記録する</button>
+      </div>
+      <div class="gj-status" id="gj-status"></div>
+    `;
+    document.getElementById('gj-save-btn').addEventListener('click', async () => {
+      const f1 = document.getElementById('gj-f1').value.trim();
+      const status = document.getElementById('gj-status');
+      if (!f1) {
+        status.textContent = '「頑張ったこと」だけは入れてね';
+        return;
+}
+      if (!data.entries[today]) data.entries[today] = {};
+      data.entries[today].night = {
+        ganbatta: f1,
+        arigatou: document.getElementById('gj-f2').value.trim(),
+        atarimae: document.getElementById('gj-f3').value.trim(),
+        manabi: document.getElementById('gj-f4').value.trim(),
+};
+      status.textContent = '保存中...';
+      try {
+        await saveData();
+        render();
+} catch (e) {
+        status.textContent = '保存に失敗した、もう一度押して';
+}
+});
+}
+
+  function renderHistory() {
+    const list = document.getElementById('gj-history-list');
+    const dates = Object.keys(data.entries)
+      .filter(d => data.entries[d].night)
+      .sort()
+      .reverse()
+      .slice(0, 14);
+    if (dates.length === 0) {
+      list.innerHTML = '<div class="gj-history-row"><div class="t" style="color:var(--muted)">まだ記録がないよ</div></div>';
+      return;
+}
+    list.innerHTML = dates.map(d => `
+      <div class="gj-history-row">
+        <div class="d">${fmtDate(d)}</div>
+        <div class="t">${escapeHtml(data.entries[d].night.ganbatta)}</div>
+      </div>
+    `).join('');
+}
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+  function escapeAttr(str) { return escapeHtml(str); }
+
+  root.innerHTML = '<div class="gj-loading">読み込み中...</div>';
+  loadData().then(render);
+})();
+</script>
+  </body>
+  </html>
+  </body>
+  </html>
