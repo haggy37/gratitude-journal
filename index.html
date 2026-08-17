@@ -222,6 +222,13 @@
     font-size: 13px;
     padding: 40px 0;
 }
+  /* --- Export --- */
+  .gj-export {
+        display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+  .gj-export .gj-btn { width: auto; flex: 1; font-size: 12px; padding: 12px 8px; }
   /* --- Calendar --- */
   .gj-cal {
         border: 1px solid var(--line);
@@ -406,6 +413,10 @@
         <summary>これまでの記録を見る</summary>
         <div class="gj-history-list" id="gj-history-list"></div>
       </details>
+      <div class="gj-export">
+        <button class="gj-btn gj-btn-ghost" id="gj-export-csv-btn">CSVで書き出す</button>
+        <button class="gj-btn gj-btn-ghost" id="gj-export-json-btn">JSONで書き出す</button>
+      </div>
     `;
 
     document.querySelectorAll('.gj-tab').forEach(el => {
@@ -418,6 +429,8 @@
     renderCalendar();
     renderPanel(todayEntry, today);
     renderHistory();
+    document.getElementById('gj-export-csv-btn').addEventListener('click', exportCSV);
+    document.getElementById('gj-export-json-btn').addEventListener('click', exportJSON);
 }
 
   function renderCalendar() {
@@ -609,6 +622,39 @@
       }
 
   function escapeAttr(str) { return escapeHtml(str); }
+
+  function downloadBlob(content, filename, mime) {
+        const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportJSON() {
+        downloadBlob(JSON.stringify(data, null, 2), `gratitude-journal-${todayStr()}.json`, 'application/json');
+  }
+
+  function csvEscape(str) {
+        const s = String(str == null ? '' : str);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportCSV() {
+        const header = ['日付','曜日','朝の実践','頑張ったこと','ありがとうと言われたこと','当たり前だけどありがたいこと','嫌な出来事からの学び'];
+    const rows = Object.keys(data.entries).sort().map(d => {
+      const e = data.entries[d];
+      const n = e.night || {};
+      return [d, weekday(d), e.morning ? '○' : '', n.ganbatta || '', n.arigatou || '', n.atarimae || '', n.manabi || '']
+        .map(csvEscape).join(',');
+});
+    const csv = '\uFEFF' + [header.map(csvEscape).join(','), ...rows].join('\n');
+    downloadBlob(csv, `gratitude-journal-${todayStr()}.csv`, 'text/csv;charset=utf-8');
+  }
 
   root.innerHTML = '<div class="gj-loading">読み込み中...</div>';
   loadData().then(render);
