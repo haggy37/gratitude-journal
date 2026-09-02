@@ -203,19 +203,21 @@
     letter-spacing: 0.04em;
 }
   .gj-history-list { margin-top: 12px; }
-  .gj-history-row {
-        display: flex;
-    gap: 10px;
-    padding: 10px 0;
+  .gj-history-entry {
+        padding: 12px 0;
     border-top: 1px solid var(--line);
-    font-size: 13px;
 }
-  .gj-history-row .d {
-    color: var(--muted);
-    min-width: 44px;
-    flex-shrink: 0;
-  }
-  .gj-history-row .t { line-height: 1.6; }
+  .gj-history-entry:first-child { border-top: none; padding-top: 0; }
+  .gj-history-date {
+        font-size: 12px;
+    color: var(--amber-soft);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 8px;
+}
+  .gj-history-item { display: flex; gap: 8px; font-size: 13px; line-height: 1.6; margin-bottom: 3px; }
+  .gj-history-item .k { color: var(--muted); min-width: 90px; flex-shrink: 0; }
+  .gj-history-item .v { flex: 1; }
   .gj-loading {
         text-align: center;
     color: var(--muted);
@@ -605,15 +607,28 @@
       .reverse()
       .slice(0, 14);
     if (dates.length === 0) {
-      list.innerHTML = '<div class="gj-history-row"><div class="t" style="color:var(--muted)">まだ記録がないよ</div></div>';
+      list.innerHTML = '<div class="gj-history-entry"><div class="gj-history-item"><span class="v" style="color:var(--muted)">まだ記録がないよ</span></div></div>';
       return;
 }
-    list.innerHTML = dates.map(d => `
-      <div class="gj-history-row">
-        <div class="d">${fmtDate(d)}</div>
-        <div class="t">${escapeHtml(data.entries[d].night.ganbatta)}</div>
-      </div>
-    `).join('');
+    list.innerHTML = dates.map(d => {
+      const entry = data.entries[d];
+      const n = entry.night;
+      const items = [
+        ['頑張ったこと', n.ganbatta],
+        ['ありがとう', n.arigatou],
+        ['当たり前', n.atarimae],
+        ['学び', n.manabi],
+        ['朝の実践', entry.morning ? '○' : ''],
+      ].filter(([, v]) => v);
+      return `
+        <div class="gj-history-entry">
+          <div class="gj-history-date">${fmtDate(d)}（${weekday(d)}）</div>
+          ${items.map(([k, v]) => `
+            <div class="gj-history-item"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>
+          `).join('')}
+        </div>
+      `;
+    }).join('');
 }
 
   function escapeHtml(str) {
