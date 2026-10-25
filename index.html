@@ -169,7 +169,57 @@
         border-color: var(--amber);
     background: rgba(255,255,255,0.09);
 }
-  .gj-field input::placeholder { color: rgba(253,251,246,0.32); }
+  .gj-field input::placeholder, .gj-field textarea::placeholder { color: rgba(253,251,246,0.32); }
+  .gj-field textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--paper);
+    outline: none;
+    resize: vertical;
+    min-height: 72px;
+    font-family: inherit;
+  }
+  .gj-field textarea:focus { border-color: var(--amber); background: rgba(255,255,255,0.09); }
+  .gj-field .gj-hint { font-size: 10px; color: var(--muted); opacity: 0.8; }
+  /* --- Affirmation / RAS --- */
+  .gj-affirm {
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border-left: 2px solid var(--amber);
+    background: rgba(224,149,79,0.08);
+    border-radius: 0 10px 10px 0;
+    text-align: left;
+    white-space: pre-wrap;
+  }
+  .gj-link {
+    background: none; border: none; padding: 0;
+    color: var(--muted); font-size: 11px; text-decoration: underline;
+    cursor: pointer; margin-bottom: 18px; display: inline-block;
+  }
+  .gj-section-label {
+    font-size: 11px; letter-spacing: 0.08em; color: var(--amber-soft);
+    margin: 22px 0 10px; text-align: left;
+  }
+  .gj-morning-card .gj-field { text-align: left; }
+  /* --- Never miss twice --- */
+  .gj-warn {
+    border: 1px solid var(--amber);
+    background: rgba(224,149,79,0.14);
+    color: var(--paper);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .gj-warn b { color: var(--amber-soft); }
   .gj-save-row { margin-top: 20px; }
   .gj-status {
         font-size: 12px;
@@ -348,7 +398,26 @@
     return w[d.getDay()];
   }
 
-  let data = { entries: {}, streak: 0, lastEntryDate: null };
+  let data = { entries: {}, streak: 0, lastEntryDate: null, affirmation: '' };
+  let editingAffirmation = false;
+
+  function shiftDate(str, days) {
+    const d = new Date(str + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return new Date(d - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  }
+
+  // Never miss twice: 昨日が空白で、今日もまだ夜の記録がない
+  function missWarningHtml(today) {
+    const hasToday = !!(data.entries[today] && data.entries[today].night);
+    if (hasToday) return '';
+    const hasAny = Object.keys(data.entries).some(d => data.entries[d].night);
+    if (!hasAny) return '';
+    const y = shiftDate(today, -1);
+    const hasYesterday = !!(data.entries[y] && data.entries[y].night);
+    if (hasYesterday) return '';
+    return `<div class="gj-warn"><b>昨日は空白だったよ。</b><br>今日は「頑張ったこと」1行だけでOK。2日連続で休まなければ、習慣はつながってる。</div>`;
+  }
   let activeTab = 'night';
   let calMonth = todayStr().slice(0, 7); // 'YYYY-MM'
 
@@ -407,6 +476,7 @@
         <div class="gj-tab ${activeTab==='morning'?'active':''}" data-tab="morning">朝</div>
         <div class="gj-tab ${activeTab==='night'?'active':''}" data-tab="night">夜</div>
       </div>
+      ${missWarningHtml(today)}
       <div id="gj-panel"></div>
       <div id="gj-cal-wrap"></div>
       <details class="gj-history">
@@ -504,27 +574,7 @@
   function renderPanel(todayEntry, today) {
     const panel = document.getElementById('gj-panel');
     if (activeTab === 'morning') {
-      if (todayEntry.morning) {
-        panel.innerHTML = `
-          <div class="gj-morning-card">
-            <div class="gj-morning-phrase">今日はついてる、ありがとう 🌅</div>
-            <div class="gj-done-check">✓ 今日はもう記録済み</div>
-          </div>
-        `;
-} else {
-        panel.innerHTML = `
-          <div class="gj-morning-card">
-            <div class="gj-morning-phrase">今日はついてる、<br>ありがとう</div>
-            <button class="gj-btn gj-btn-primary" id="gj-morning-btn">言えたら押す</button>
-          </div>
-        `;
-        document.getElementById('gj-morning-btn').addEventListener('click', async () => {
-          if (!data.entries[today]) data.entries[today] = {};
-          data.entries[today].morning = true;
-          await saveData();
-          render();
-});
-}
+      renderMorning(todayEntry, today);
       return;
 }
 
@@ -537,6 +587,7 @@
           <div class="gj-saved-item"><div class="k">ありがとうと言われたこと</div><div class="v">${escapeHtml(n.arigatou)}</div></div>
           <div class="gj-saved-item"><div class="k">当たり前だけどありがたいこと</div><div class="v">${escapeHtml(n.atarimae)}</div></div>
           <div class="gj-saved-item"><div class="k">嫌な出来事からの学び</div><div class="v">${escapeHtml(n.manabi || '（なし）')}</div></div>
+          ${n.taiwa ? `<div class="gj-saved-item"><div class="k">第三者の自分との対話</div><div class="v" style="white-space:pre-wrap">${escapeHtml(n.taiwa)}</div></div>` : ''}
           <button class="gj-btn gj-btn-ghost" id="gj-edit-btn">編集する</button>
         </div>
       `;
@@ -547,6 +598,84 @@
       renderForm(todayEntry, today);
 }
 }
+
+  function affirmationBlock() {
+    if (editingAffirmation || !data.affirmation) {
+      return `
+        <div class="gj-field">
+          <label>アファメーション（毎朝読む、ゴールの世界の私）</label>
+          <textarea id="gj-affirm-input" placeholder="例：私は息子と海外の街を歩きながら、時間を気にせず笑っている">${escapeHtml(data.affirmation || '')}</textarea>
+          <button class="gj-btn gj-btn-ghost" id="gj-affirm-save" style="margin-top:8px">アファメーションを保存</button>
+        </div>`;
+    }
+    return `
+      <div class="gj-affirm">${escapeHtml(data.affirmation)}</div>
+      <button class="gj-link" id="gj-affirm-edit">アファメーションを編集</button>`;
+  }
+
+  function bindAffirmation(todayEntry, today) {
+    const saveBtn = document.getElementById('gj-affirm-save');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        data.affirmation = document.getElementById('gj-affirm-input').value.trim();
+        editingAffirmation = false;
+        await saveData();
+        renderMorning(todayEntry, today);
+      });
+    }
+    const editBtn = document.getElementById('gj-affirm-edit');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        editingAffirmation = true;
+        renderMorning(todayEntry, today);
+      });
+    }
+  }
+
+  function renderMorning(todayEntry, today) {
+    const panel = document.getElementById('gj-panel');
+    const m = (todayEntry.morning && typeof todayEntry.morning === 'object') ? todayEntry.morning : {};
+    if (todayEntry.morning) {
+      panel.innerHTML = `
+        <div class="gj-morning-card">
+          ${affirmationBlock()}
+          <div class="gj-morning-phrase">今日はついてる、ありがとう 🌅</div>
+          ${m.ras ? `<div class="gj-saved-item" style="text-align:left"><div class="k">今日RASで探すもの</div><div class="v">${escapeHtml(m.ras)}</div></div>` : ''}
+          ${m.task ? `<div class="gj-saved-item" style="text-align:left"><div class="k">今日の最重要タスク</div><div class="v">${escapeHtml(m.task)}</div></div>` : ''}
+          <div class="gj-done-check">✓ 今日はもう記録済み</div>
+        </div>
+      `;
+      bindAffirmation(todayEntry, today);
+      return;
+    }
+    panel.innerHTML = `
+      <div class="gj-morning-card">
+        ${affirmationBlock()}
+        <div class="gj-morning-phrase">今日はついてる、<br>ありがとう</div>
+        <div class="gj-section-label">できたら（任意）</div>
+        <div class="gj-field">
+          <label>今日RASで探すもの</label>
+          <input type="text" id="gj-m-ras" placeholder="例：困りごとを話している人">
+        </div>
+        <div class="gj-field">
+          <label>今日の最重要タスク（1行）</label>
+          <input type="text" id="gj-m-task" placeholder="例：〇〇さんに連絡する">
+        </div>
+        <button class="gj-btn gj-btn-primary" id="gj-morning-btn">言えたら押す</button>
+      </div>
+    `;
+    bindAffirmation(todayEntry, today);
+    document.getElementById('gj-morning-btn').addEventListener('click', async () => {
+      if (!data.entries[today]) data.entries[today] = {};
+      data.entries[today].morning = {
+        done: true,
+        ras: document.getElementById('gj-m-ras').value.trim(),
+        task: document.getElementById('gj-m-task').value.trim(),
+      };
+      await saveData();
+      render();
+    });
+  }
 
   function renderForm(todayEntry, today) {
     const panel = document.getElementById('gj-panel');
@@ -568,6 +697,10 @@
         <label>嫌な出来事から学べたこと（任意）</label>
         <input type="text" id="gj-f4" value="${escapeAttr(n.manabi||'')}" placeholder="なければ空欄でOK">
       </div>
+      <div class="gj-field">
+        <label>第三者の自分との対話（任意）<br><span class="gj-hint">実況 → 共感 → 「どうなりたいんだ？」の順で</span></label>
+        <textarea id="gj-f5" placeholder="例：お前、今日はアポが取れなくて落ち込んでるな。わかるよ。で、どうなりたいんだ？">${escapeHtml(n.taiwa||'')}</textarea>
+      </div>
       <div class="gj-save-row">
         <button class="gj-btn gj-btn-primary" id="gj-save-btn">記録する</button>
       </div>
@@ -586,6 +719,7 @@
         arigatou: document.getElementById('gj-f2').value.trim(),
         atarimae: document.getElementById('gj-f3').value.trim(),
         manabi: document.getElementById('gj-f4').value.trim(),
+        taiwa: document.getElementById('gj-f5').value.trim(),
 };
       status.textContent = '保存中...';
       try {
@@ -645,11 +779,12 @@
   }
 
   function exportCSV() {
-        const header = ['日付','曜日','朝の実践','頑張ったこと','ありがとうと言われたこと','当たり前だけどありがたいこと','嫌な出来事からの学び'];
+        const header = ['日付','曜日','朝の実践','今日RASで探すもの','今日の最重要タスク','頑張ったこと','ありがとうと言われたこと','当たり前だけどありがたいこと','嫌な出来事からの学び','第三者の自分との対話'];
     const rows = Object.keys(data.entries).sort().map(d => {
       const e = data.entries[d];
       const n = e.night || {};
-      return [d, weekday(d), e.morning ? '○' : '', n.ganbatta || '', n.arigatou || '', n.atarimae || '', n.manabi || '']
+      const m = (e.morning && typeof e.morning === 'object') ? e.morning : {};
+      return [d, weekday(d), e.morning ? '○' : '', m.ras || '', m.task || '', n.ganbatta || '', n.arigatou || '', n.atarimae || '', n.manabi || '', n.taiwa || '']
         .map(csvEscape).join(',');
 });
     const csv = '\uFEFF' + [header.map(csvEscape).join(','), ...rows].join('\n');
@@ -660,7 +795,5 @@
   loadData().then(render);
 })();
 </script>
-  </body>
-  </html>
   </body>
   </html>
