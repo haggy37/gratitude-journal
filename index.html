@@ -220,6 +220,31 @@
     margin-bottom: 16px;
   }
   .gj-warn b { color: var(--amber-soft); }
+  /* --- Amway tracker --- */
+  .gj-aw-streak {
+    font-size: 12px; color: var(--muted); text-align: center;
+    margin-bottom: 14px; letter-spacing: 0.04em;
+  }
+  .gj-aw-choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .gj-aw-choice {
+    appearance: none; text-align: left; cursor: pointer;
+    background: rgba(255,255,255,0.05); color: var(--paper);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; font-size: 14px; font-family: inherit;
+    display: flex; align-items: center; gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 150ms, border-color 150ms;
+  }
+  .gj-aw-choice.selected { border-color: var(--amber); background: rgba(224,149,79,0.18); }
+  .gj-aw-mark { font-size: 18px; color: var(--amber-soft); width: 22px; text-align: center; flex-shrink: 0; }
+  .gj-aw-result {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 700; margin-bottom: 14px;
+  }
+  .gj-cal-sub { font-size: 10px; color: var(--amber-soft); margin-left: 6px; font-weight: 600; }
+  .gj-cal-cell.gj-aw3 { background: var(--amber); color: var(--indigo-deep); font-weight: 700; }
+  .gj-cal-cell.gj-aw2 { background: rgba(224,149,79,0.55); color: var(--indigo-deep); font-weight: 700; }
+  .gj-cal-cell.gj-aw1 { background: rgba(224,149,79,0.22); border: 1px solid rgba(224,149,79,0.6); color: var(--amber-soft); }
   .gj-save-row { margin-top: 20px; }
   .gj-status {
         font-size: 12px;
@@ -421,6 +446,35 @@
   let activeTab = 'night';
   let calMonth = todayStr().slice(0, 7); // 'YYYY-MM'
 
+  // --- アムウェイ行動（3段階） ---
+  const AW_LEVELS = {
+    3: { mark: '◎', label: 'アポが確定した' },
+    2: { mark: '○', label: 'アムウェイの話をした' },
+    1: { mark: '△', label: '連絡した／次に話す人を決めた' },
+  };
+  let editingAmway = false;
+
+  function awLevel(dateStr) {
+    const e = data.entries[dateStr];
+    return (e && e.amway && e.amway.level) ? e.amway.level : 0;
+  }
+
+  function awStreak() {
+    const today = todayStr();
+    let cursor = awLevel(today) ? today : shiftDate(today, -1);
+    let count = 0;
+    while (awLevel(cursor)) { count++; cursor = shiftDate(cursor, -1); }
+    return count;
+  }
+
+  function awWarningHtml(today) {
+    if (awLevel(today)) return '';
+    const hasAny = Object.keys(data.entries).some(d => awLevel(d));
+    if (!hasAny) return '';
+    if (awLevel(shiftDate(today, -1))) return '';
+    return `<div class="gj-warn"><b>昨日はアムウェイの行動が空白だったよ。</b><br>今日は△（連絡する、または次に話す人を決める）だけでOK。2日連続にしなければ大丈夫。</div>`;
+  }
+
   async function loadData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -474,9 +528,10 @@
       <div class="gj-date">${today.slice(0,4)}年${fmtDate(today)}（${weekday(today)}）</div>
       <div class="gj-tabs">
         <div class="gj-tab ${activeTab==='morning'?'active':''}" data-tab="morning">朝</div>
+        <div class="gj-tab ${activeTab==='amway'?'active':''}" data-tab="amway">アムウェイ</div>
         <div class="gj-tab ${activeTab==='night'?'active':''}" data-tab="night">夜</div>
       </div>
-      ${missWarningHtml(today)}
+      ${activeTab === 'amway' ? awWarningHtml(today) : missWarningHtml(today)}
       <div id="gj-panel"></div>
       <div id="gj-cal-wrap"></div>
       <details class="gj-history">
@@ -512,7 +567,9 @@
     const today = todayStr();
     const isCurrentMonth = calMonth === today.slice(0, 7);
 
+    const awMode = activeTab === 'amway';
     let completedCount = 0;
+    const awCounts = { 1: 0, 2: 0, 3: 0 };
     let cells = '';
     for (let i = 0; i < startDow; i++) {
       cells += `<div class="gj-cal-cell gj-empty"></div>`;
@@ -520,24 +577,39 @@
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const entry = data.entries[dateStr];
-      const hasNight = !!(entry && entry.night);
-      const hasMorning = !!(entry && entry.morning);
-      if (hasNight) completedCount++;
       let cls = 'gj-cal-cell';
-      if (hasNight && hasMorning) cls += ' gj-both';
-      else if (hasNight) cls += ' gj-night-only';
-      else if (hasMorning) cls += ' gj-morning-only';
+      if (awMode) {
+        const lv = awLevel(dateStr);
+        if (lv) { awCounts[lv]++; cls += ' gj-aw' + lv; }
+      } else {
+        const hasNight = !!(entry && entry.night);
+        const hasMorning = !!(entry && entry.morning);
+        if (hasNight) completedCount++;
+        if (hasNight && hasMorning) cls += ' gj-both';
+        else if (hasNight) cls += ' gj-night-only';
+        else if (hasMorning) cls += ' gj-morning-only';
+      }
       if (dateStr === today) cls += ' gj-today';
       cells += `<div class="${cls}">${day}</div>`;
 }
 
     const dowLabels = ['日','月','火','水','木','金','土'];
+    const statHtml = awMode
+      ? `◎${awCounts[3]} ○${awCounts[2]} △${awCounts[1]}`
+      : `${completedCount}日 記録`;
+    const legendHtml = awMode
+      ? `<span><span class="gj-legend-dot" style="background:var(--amber)"></span>◎ アポ確定</span>
+         <span><span class="gj-legend-dot" style="background:rgba(224,149,79,0.55)"></span>○ 話をした</span>
+         <span><span class="gj-legend-dot" style="background:rgba(224,149,79,0.22);border:1px solid rgba(224,149,79,0.6)"></span>△ 連絡・決めた</span>`
+      : `<span><span class="gj-legend-dot" style="background:var(--amber)"></span>朝・夜とも</span>
+         <span><span class="gj-legend-dot" style="background:rgba(224,149,79,0.55)"></span>夜のみ</span>
+         <span><span class="gj-legend-dot" style="background:transparent;border:1px solid var(--amber)"></span>朝のみ</span>`;
 
     wrap.innerHTML = `
             <div class="gj-cal">
               <div class="gj-cal-head">
-                <div class="gj-cal-title">${y}年${m}月</div>
-                <div class="gj-cal-month-stat">${completedCount}日 記録</div>
+                <div class="gj-cal-title">${y}年${m}月${awMode ? '<span class="gj-cal-sub">アムウェイ</span>' : ''}</div>
+                <div class="gj-cal-month-stat">${statHtml}</div>
                 <div class="gj-cal-nav">
                   <button id="gj-cal-prev">‹</button>
                   <button id="gj-cal-next" ${isCurrentMonth ? 'disabled' : ''}>›</button>
@@ -548,9 +620,7 @@
                 ${cells}
         </div>
               <div class="gj-cal-legend">
-                <span><span class="gj-legend-dot" style="background:var(--amber)"></span>朝・夜とも</span>
-                <span><span class="gj-legend-dot" style="background:rgba(224,149,79,0.55)"></span>夜のみ</span>
-                <span><span class="gj-legend-dot" style="background:transparent;border:1px solid var(--amber)"></span>朝のみ</span>
+                ${legendHtml}
               </div>
             </div>
           `;
@@ -575,6 +645,10 @@
     const panel = document.getElementById('gj-panel');
     if (activeTab === 'morning') {
       renderMorning(todayEntry, today);
+      return;
+}
+    if (activeTab === 'amway') {
+      renderAmway(todayEntry, today);
       return;
 }
 
@@ -677,6 +751,68 @@
     });
   }
 
+  function renderAmway(todayEntry, today) {
+    const panel = document.getElementById('gj-panel');
+    const aw = todayEntry.amway || null;
+    const streak = awStreak();
+    const streakHtml = `<div class="gj-aw-streak">アムウェイ行動 <span class="gj-streak-num">${streak}</span>日連続（△以上）</div>`;
+
+    if (aw && aw.level && !editingAmway) {
+      const L = AW_LEVELS[aw.level];
+      panel.innerHTML = `
+        <div class="gj-saved-card">
+          ${streakHtml}
+          <div class="gj-aw-result"><span class="gj-aw-mark">${L.mark}</span>${L.label}</div>
+          ${aw.memo ? `<div class="gj-saved-item"><div class="k">相手・メモ</div><div class="v">${escapeHtml(aw.memo)}</div></div>` : ''}
+          <button class="gj-btn gj-btn-ghost" id="gj-aw-edit">${aw.level < 3 ? '段階が上がったら更新する' : '更新する'}</button>
+        </div>`;
+      document.getElementById('gj-aw-edit').addEventListener('click', () => {
+        editingAmway = true;
+        renderAmway(todayEntry, today);
+      });
+      return;
+    }
+
+    let selected = aw && aw.level ? aw.level : 0;
+    panel.innerHTML = `
+      ${streakHtml}
+      <div class="gj-aw-choices">
+        ${[3,2,1].map(lv => `
+          <button class="gj-aw-choice ${selected===lv?'selected':''}" data-lv="${lv}">
+            <span class="gj-aw-mark">${AW_LEVELS[lv].mark}</span>${AW_LEVELS[lv].label}
+          </button>`).join('')}
+      </div>
+      <div class="gj-field">
+        <label>相手の名前・メモ（任意）</label>
+        <input type="text" id="gj-aw-memo" value="${escapeAttr(aw && aw.memo || '')}" placeholder="例：〇〇さん　製品の話、来週ランチ">
+      </div>
+      <div class="gj-save-row">
+        <button class="gj-btn gj-btn-primary" id="gj-aw-save">記録する</button>
+      </div>
+      <div class="gj-status" id="gj-aw-status"></div>`;
+
+    panel.querySelectorAll('.gj-aw-choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selected = Number(btn.dataset.lv);
+        panel.querySelectorAll('.gj-aw-choice').forEach(b => b.classList.toggle('selected', b === btn));
+      });
+    });
+    document.getElementById('gj-aw-save').addEventListener('click', async () => {
+      if (!selected) {
+        document.getElementById('gj-aw-status').textContent = '◎・○・△のどれかを選んでね';
+        return;
+      }
+      if (!data.entries[today]) data.entries[today] = {};
+      data.entries[today].amway = {
+        level: selected,
+        memo: document.getElementById('gj-aw-memo').value.trim(),
+      };
+      editingAmway = false;
+      await saveData();
+      render();
+    });
+  }
+
   function renderForm(todayEntry, today) {
     const panel = document.getElementById('gj-panel');
     const n = todayEntry.night || {};
@@ -733,6 +869,16 @@
 
   function renderHistory() {
     const list = document.getElementById('gj-history-list');
+    if (activeTab === 'amway') {
+      const awDates = Object.keys(data.entries).filter(d => awLevel(d)).sort().reverse().slice(0, 14);
+      list.innerHTML = awDates.length === 0
+        ? '<div class="gj-history-row"><div class="t" style="color:var(--muted)">まだ記録がないよ</div></div>'
+        : awDates.map(d => {
+            const a = data.entries[d].amway;
+            return `<div class="gj-history-row"><div class="d">${fmtDate(d)}</div><div class="t">${AW_LEVELS[a.level].mark} ${escapeHtml(a.memo || AW_LEVELS[a.level].label)}</div></div>`;
+          }).join('');
+      return;
+    }
     const dates = Object.keys(data.entries)
       .filter(d => data.entries[d].night)
       .sort()
@@ -779,12 +925,12 @@
   }
 
   function exportCSV() {
-        const header = ['日付','曜日','朝の実践','今日RASで探すもの','今日の最重要タスク','頑張ったこと','ありがとうと言われたこと','当たり前だけどありがたいこと','嫌な出来事からの学び','第三者の自分との対話'];
+        const header = ['日付','曜日','朝の実践','今日RASで探すもの','今日の最重要タスク','頑張ったこと','ありがとうと言われたこと','当たり前だけどありがたいこと','嫌な出来事からの学び','第三者の自分との対話','アムウェイ行動','アムウェイ相手・メモ'];
     const rows = Object.keys(data.entries).sort().map(d => {
       const e = data.entries[d];
       const n = e.night || {};
       const m = (e.morning && typeof e.morning === 'object') ? e.morning : {};
-      return [d, weekday(d), e.morning ? '○' : '', m.ras || '', m.task || '', n.ganbatta || '', n.arigatou || '', n.atarimae || '', n.manabi || '', n.taiwa || '']
+      return [d, weekday(d), e.morning ? '○' : '', m.ras || '', m.task || '', n.ganbatta || '', n.arigatou || '', n.atarimae || '', n.manabi || '', n.taiwa || '', e.amway && e.amway.level ? AW_LEVELS[e.amway.level].mark : '', e.amway ? (e.amway.memo || '') : '']
         .map(csvEscape).join(',');
 });
     const csv = '\uFEFF' + [header.map(csvEscape).join(','), ...rows].join('\n');
